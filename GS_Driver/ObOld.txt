@@ -1,0 +1,243 @@
+//Callback function (strips process handle access to game & service process)
+OB_PREOP_CALLBACK_STATUS ObjectPreCallbackProcess(PVOID pRegistrationContext, POB_PRE_OPERATION_INFORMATION pOperationInfo)
+{
+	UNREFERENCED_PARAMETER(pRegistrationContext);
+	//Check if PID'S are valid
+	if (!ServicePID || !CSRSS1PID || !CSRSS2PID || !LauncherPID)
+		return OB_PREOP_SUCCESS;
+
+	//Current Process Information
+	PEPROCESS pTargetProcess = (PEPROCESS)pOperationInfo->Object; //The process or thread object that is the target of the handle operation
+	ULONG TargetProcessPID = (ULONG)PsGetProcessId(pTargetProcess);
+
+	//Avoid striping csrss.exe handle
+	if (TargetProcessPID == CSRSS1PID|| TargetProcessPID == CSRSS2PID)
+		return OB_PREOP_SUCCESS;
+
+	//Check if csrss.exe requested the handle operation
+	if ((ULONG)PsGetCurrentProcessId() == CSRSS1PID || (ULONG)PsGetCurrentProcessId() == CSRSS2PID)
+		return OB_PREOP_SUCCESS;
+
+	//Allow Driver to get a handle
+	if (pOperationInfo->KernelHandle)
+		return OB_PREOP_SUCCESS;
+
+	//If Game requested handle operation don't strip
+	if ((ULONG)PsGetCurrentProcessId() == GameProcID)
+		return OB_PREOP_SUCCESS;
+
+	if (!IsInit) //Allow handle access until initialized
+	{
+		//If UserMode Anti Cheat requested handle operation don't strip
+		if ((ULONG)PsGetCurrentProcessId() == LauncherPID || (ULONG)PsGetCurrentProcessId() == ServicePID)
+			return OB_PREOP_SUCCESS;
+
+	}
+
+	//Service Striping
+	if (TargetProcessPID == ServicePID) //If the target of the handle operation is our service then strip handle access
+	{
+		if (pOperationInfo->Operation == OB_OPERATION_HANDLE_CREATE)
+		{
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_SUSPEND_RESUME) == PROCESS_SUSPEND_RESUME)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_TERMINATE) == PROCESS_TERMINATE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_TERMINATE;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_OPERATION;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_CREATE_THREAD;
+		}
+		else
+		{
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_TERMINATE) == PROCESS_TERMINATE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_TERMINATE;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_SUSPEND_RESUME) == PROCESS_SUSPEND_RESUME)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_OPERATION;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_CREATE_THREAD;
+
+		}
+	}
+	else if (GameProcID) //If Game PID is Valid
+	{
+		if (!TargetProcessPID == GameProcID)
+			return OB_PREOP_SUCCESS;
+
+		if (pOperationInfo->Operation == OB_OPERATION_HANDLE_CREATE)
+		{
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_OPERATION;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_CREATE_THREAD;
+		}
+		else
+		{
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_OPERATION;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_CREATE_THREAD;
+
+		}
+	}
+
+	return OB_PREOP_SUCCESS;
+}
+
+//Callback function (strips thread handle access to game & service process)
+OB_PREOP_CALLBACK_STATUS ObjectPreCallbackThread(PVOID pRegistrationContext, POB_PRE_OPERATION_INFORMATION pOperationInfo)
+{
+	UNREFERENCED_PARAMETER(pRegistrationContext);
+	//Check if PID'S are valid
+	if (!ServicePID || !CSRSS1PID || !CSRSS2PID || !LauncherPID || !SteamPID)
+		return OB_PREOP_SUCCESS;
+
+	//Current Process and Thread Information
+	PETHREAD pTargetThread = (PETHREAD)pOperationInfo->Object; //Target Thread of the handle operation
+	PEPROCESS pTargetProcess = IoThreadToProcess(pTargetThread); //Get the EPROCESS ptr of the thread's process
+	ULONG TargetProccesID = (ULONG)PsGetProcessId(pTargetProcess);
+
+	//Requester Process and Thread Information
+	PETHREAD pRequesterThread = PsGetCurrentThread(); //Requesters ETHREAD ptr
+	PEPROCESS pRequesterProcess = IoThreadToProcess(pRequesterThread); //Get the EPROCESS ptr of the thread's process
+	ULONG RequesterProcessPID = (ULONG)PsGetProcessId(pRequesterProcess);
+
+	//Check if csrss.exe requested the handle operation
+	if (RequesterProcessPID == CSRSS1PID || RequesterProcessPID == CSRSS2PID)
+		return OB_PREOP_SUCCESS;
+
+	//Allow Driver to get a handle
+	if (pOperationInfo->KernelHandle)
+		return OB_PREOP_SUCCESS;
+
+	//If Game requested handle operation don't strip
+	if (GameProcID)
+	{
+		if (RequesterProcessPID == GameProcID)
+			return OB_PREOP_SUCCESS;
+	}
+
+	if (!IsInit) //Allow handle access until initialized
+	{
+		//If UserMode Anti Cheat requested handle operation don't strip
+		if (RequesterProcessPID == LauncherPID || RequesterProcessPID == ServicePID)
+			return OB_PREOP_SUCCESS;
+	}
+
+	//Service Striping
+	if (TargetProccesID == ServicePID) //If the target of the handle operation is our service then strip handle access
+	{
+		if (pOperationInfo->Operation == OB_OPERATION_HANDLE_CREATE)
+		{
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_SUSPEND_RESUME) == THREAD_SUSPEND_RESUME)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_TERMINATE) == THREAD_TERMINATE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_TERMINATE;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_SET_INFORMATION) == THREAD_SET_INFORMATION)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_SET_INFORMATION;
+		}
+		else
+		{
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_SUSPEND_RESUME) == THREAD_SUSPEND_RESUME)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_TERMINATE) == THREAD_TERMINATE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_TERMINATE;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_SET_INFORMATION) == THREAD_SET_INFORMATION)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_SET_INFORMATION;
+
+		}
+	}
+	else if (GameProcID) //If the target of the handle operation is our game then strip handle access
+	{
+		if (!TargetProccesID == GameProcID)
+			return OB_PREOP_SUCCESS;
+
+		if (pOperationInfo->Operation == OB_OPERATION_HANDLE_CREATE)
+		{
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_SUSPEND_RESUME) == THREAD_SUSPEND_RESUME)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_TERMINATE) == THREAD_TERMINATE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_TERMINATE;
+
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & THREAD_SET_INFORMATION) == THREAD_SET_INFORMATION)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~THREAD_SET_INFORMATION;
+		}
+		else
+		{
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_ALL_ACCESS;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_SUSPEND_RESUME) == THREAD_SUSPEND_RESUME)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_SUSPEND_RESUME;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_TERMINATE) == THREAD_TERMINATE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_TERMINATE;
+
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & THREAD_SET_INFORMATION) == THREAD_SET_INFORMATION)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~THREAD_SET_INFORMATION;
+
+		}
+	}
+
+	return OB_PREOP_SUCCESS;
+}

@@ -1,0 +1,29 @@
+//Check for handle create operation
+		if (pOperationInfo->Operation == OB_OPERATION_HANDLE_CREATE)
+		{
+			//Strip PROCESS_ALL_ACCESS
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & ~PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			//Strip VM_READ
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & ~PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			//Strip VM_WRITE
+			if ((pOperationInfo->Parameters->CreateHandleInformation.OriginalDesiredAccess & ~PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->CreateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+		}
+		else //Check for handle duplicate operation
+		{
+			//Strip PROCESS_ALL_ACCESS
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & ~PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_ALL_ACCESS;
+
+			//Strip VM_READ
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & ~PROCESS_VM_READ) == PROCESS_VM_READ)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_READ;
+
+			//Strip VM_WRITE
+			if ((pOperationInfo->Parameters->DuplicateHandleInformation.OriginalDesiredAccess & ~PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+				pOperationInfo->Parameters->DuplicateHandleInformation.DesiredAccess &= ~PROCESS_VM_WRITE;
+		}

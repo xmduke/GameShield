@@ -1,0 +1,23 @@
+#pragma once
+#include <Windows.h>
+#include <iostream>
+#include <TlHelp32.h>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+#include <fstream>
+#include <algorithm>
+#include <Psapi.h>
+#include <chrono>
+#include <thread>
+
+#include "xorstr.hpp"
+#include "GS_AntiVM.h"
+#include "GS_Driver.h"
+#include "GS_Launcher.h"
+#include "GS_Process.h"
+#include "KeInterface.h"
+#include "MD5.h"
+#include "ntdll.h"
+#include "GS_Data.h"
+#include "Injection.h"
